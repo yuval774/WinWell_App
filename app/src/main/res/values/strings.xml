@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">WinWell</string>
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Password</string>
+    <string name="action_sign_in_short">Sign in</string>
+    <string name="action_send">Send</string>
+    <string name="type_message">Type a message...</string>
+    <string name="login_failed">Login Failed</string>
+</resources>
