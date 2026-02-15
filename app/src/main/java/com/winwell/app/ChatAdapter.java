@@ -1,5 +1,7 @@
 package com.winwell.app;
 
+import java.util.ArrayList;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,15 +26,16 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private int lastPosition = -1;
 
-    public ChatAdapter(List<Message> messageList) {
-        this.messageList = messageList;
+    public ChatAdapter() {
+        super();
+        this.messageList = new ArrayList<>();
     }
 
     @Override
     public int getItemViewType(int position) {
         // Determine the type of view based on the sender of the message
         Message message = messageList.get(position);
-        if (message.isUser()) {
+        if (message.IsUser) {
             return VIEW_TYPE_USER;
         } else {
             return VIEW_TYPE_BOT;
@@ -82,5 +85,10 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     @Override
     public int getItemCount() {
         return messageList.size();
+    }
+
+    public void AddMessage(Message message) {
+        messageList.add(message);
+        notifyItemInserted(messageList.size() - 1);
     }
 }

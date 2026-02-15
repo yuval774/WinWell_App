@@ -79,16 +79,17 @@
             android:maxLines="4"
             android:layout_marginEnd="12dp"/>
 
-        <Button
+        <ImageButton
             android:id="@+id/btn_send"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:text=">"
-            android:textSize="20sp"
+            android:src="@drawable/ic_send"
             android:background="@drawable/bg_button"
-            android:textColor="@color/white"
-            app:backgroundTint="@null"
-            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+            android:contentDescription="@string/send_message"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            app:tint="@color/white"
+            android:layout_gravity="center_vertical"/>
 
     </LinearLayout>
 

@@ -3,8 +3,8 @@ package com.winwell.app;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,8 +14,6 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 /**
@@ -27,11 +25,9 @@ public class ChatActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private ChatAdapter chatAdapter;
-    private List<Message> messageList;
     private EditText editMessage;
-    private Button btnSend;
+    private ImageButton btnSend;
 
-    // Repository of chat answers
     // Repository of pre-defined therapeutic responses from the bot
     private final String[] botAnswers = {
             "I've reviewed your calendar for today and noticed a 4-hour meeting block this afternoon; you will need a recovery moment to stay sharp.",
@@ -101,8 +97,8 @@ public class ChatActivity extends AppCompatActivity {
         editMessage = findViewById(R.id.edit_message);
         btnSend = findViewById(R.id.btn_send);
 
-        messageList = new ArrayList<>();
-        chatAdapter = new ChatAdapter(messageList);
+        // Initialize adapter with internal list
+        chatAdapter = new ChatAdapter();
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         // layoutManager.setStackFromEnd(true); // Optional: start from bottom
@@ -110,24 +106,23 @@ public class ChatActivity extends AppCompatActivity {
         recyclerView.setAdapter(chatAdapter);
 
         // Add initial bot greeting to start the conversation
-        addBotMessage("Welcome to WinWell! How can I help you today?");
+        AddBotMessage("Welcome to WinWell! How can I help you today?");
 
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String content = editMessage.getText().toString().trim();
                 if (!content.isEmpty()) {
-                    sendMessage(content);
+                    SendMessage(content);
                 }
             }
         });
     }
 
-    private void sendMessage(String content) {
-        // Add user message to the list and update the adapter
-        messageList.add(new Message(content, true));
-        chatAdapter.notifyItemInserted(messageList.size() - 1);
-        recyclerView.scrollToPosition(messageList.size() - 1);
+    private void SendMessage(String content) {
+        // Add user message via adapter
+        chatAdapter.AddMessage(new Message(content, true));
+        recyclerView.scrollToPosition(chatAdapter.getItemCount() - 1);
         editMessage.setText("");
 
         // Simulate bot typing delay to make the interaction feel more natural
@@ -136,14 +131,13 @@ public class ChatActivity extends AppCompatActivity {
             public void run() {
                 // Pick random answer
                 String randomAnswer = botAnswers[new Random().nextInt(botAnswers.length)];
-                addBotMessage(randomAnswer);
+                AddBotMessage(randomAnswer);
             }
         }, 1000); // 1 second delay
     }
 
-    private void addBotMessage(String content) {
-        messageList.add(new Message(content, false));
-        chatAdapter.notifyItemInserted(messageList.size() - 1);
-        recyclerView.scrollToPosition(messageList.size() - 1);
+    private void AddBotMessage(String content) {
+        chatAdapter.AddMessage(new Message(content, false));
+        recyclerView.scrollToPosition(chatAdapter.getItemCount() - 1);
     }
 }

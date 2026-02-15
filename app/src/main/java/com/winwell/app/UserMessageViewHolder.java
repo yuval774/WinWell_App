@@ -17,19 +17,19 @@ import java.util.Locale;
  * calls.
  */
 public class UserMessageViewHolder extends RecyclerView.ViewHolder {
-    TextView messageBody;
-    TextView messageTime;
+    public TextView MessageBody;
+    public TextView MessageTime;
 
     public UserMessageViewHolder(@NonNull View itemView) {
         super(itemView);
-        messageBody = itemView.findViewById(R.id.text_message_body);
-        messageTime = itemView.findViewById(R.id.text_message_time);
+        MessageBody = itemView.findViewById(R.id.text_message_body);
+        MessageTime = itemView.findViewById(R.id.text_message_time);
     }
 
     public void bind(Message message) {
-        messageBody.setText(message.getContent());
+        MessageBody.setText(message.Content);
         // Format and display the timestamp for a realistic chat feel
         SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.getDefault());
-        messageTime.setText(sdf.format(new Date(message.getTimestamp())));
+        MessageTime.setText(sdf.format(new Date(message.Timestamp)));
     }
 }
