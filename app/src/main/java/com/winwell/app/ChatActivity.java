@@ -17,18 +17,20 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.Random;
 
 /**
- * ChatActivity is the main screen of the application.
- * It hosts the RecyclerView for the chat interface and handles
- * sending/receiving messages.
+ * ChatActivity is the main chat screen of the app.
+ * It displays a conversation between the user and the WinWell bot using a RecyclerView.
+ * The user types a message, the bot responds with a random wellness-related reply after a short delay.
  */
 public class ChatActivity extends AppCompatActivity {
 
+    // UI elements - the chat list, input field, and send button
     private RecyclerView recyclerView;
     private ChatAdapter chatAdapter;
     private EditText editMessage;
     private ImageButton btnSend;
 
-    // Repository of pre-defined therapeutic responses from the bot
+    // A collection of pre-written bot responses about wellness, scheduling, and self-care.
+    // The bot picks one randomly each time the user sends a message.
     private final String[] botAnswers = {
             "I've reviewed your calendar for today and noticed a 4-hour meeting block this afternoon; you will need a recovery moment to stay sharp.",
             "Your schedule is packed between 1 PM and 5 PM. Shall I inject a 10-minute buffer to protect your energy?",
@@ -85,33 +87,40 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Enable edge-to-edge so the app uses the full screen
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_chat);
+
+        // Adjust padding so our content doesn't hide behind the system bars
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
+        // Connect the XML views to our Java variables
         recyclerView = findViewById(R.id.recycler_chat);
         editMessage = findViewById(R.id.edit_message);
         btnSend = findViewById(R.id.btn_send);
 
-        // Initialize adapter with internal list
+        // Create the adapter that will manage and display our chat messages
         chatAdapter = new ChatAdapter();
 
+        // Set up the RecyclerView with a LinearLayoutManager so messages appear in a vertical list
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        // layoutManager.setStackFromEnd(true); // Optional: start from bottom
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(chatAdapter);
 
-        // Add initial bot greeting to start the conversation
+        // Show a welcome message from the bot when the chat screen opens
         AddBotMessage("Welcome to WinWell! How can I help you today?");
 
+        // Set up the send button - when clicked, it takes the user's text and sends it
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String content = editMessage.getText().toString().trim();
+                // Only send the message if the user actually typed something
                 if (!content.isEmpty()) {
                     SendMessage(content);
                 }
@@ -119,23 +128,35 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Handles sending a user message and triggering a bot response.
+     * First adds the user's message to the chat, then after a 1-second delay
+     * the bot responds with a random answer to simulate a real conversation.
+     */
     private void SendMessage(String content) {
-        // Add user message via adapter
+        // Add the user's message to the chat and scroll down to show it
         chatAdapter.AddMessage(new Message(content, true));
         recyclerView.scrollToPosition(chatAdapter.getItemCount() - 1);
+
+        // Clear the input field so the user can type a new message
         editMessage.setText("");
 
-        // Simulate bot typing delay to make the interaction feel more natural
+        // Use a Handler to delay the bot's response by 1 second,
+        // this makes it feel like the bot is actually "thinking"
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                // Pick random answer
+                // Pick a random response from the bot's answer pool
                 String randomAnswer = botAnswers[new Random().nextInt(botAnswers.length)];
                 AddBotMessage(randomAnswer);
             }
-        }, 1000); // 1 second delay
+        }, 1000);
     }
 
+    /**
+     * Adds a bot message to the chat and scrolls the RecyclerView to the bottom
+     * so the user can see the new message right away.
+     */
     private void AddBotMessage(String content) {
         chatAdapter.AddMessage(new Message(content, false));
         recyclerView.scrollToPosition(chatAdapter.getItemCount() - 1);

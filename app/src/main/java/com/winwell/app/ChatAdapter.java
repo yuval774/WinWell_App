@@ -12,28 +12,35 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 
 /**
- * ChatAdapter is responsible for binding the list of messages to the
- * RecyclerView.
- * It handles different view types for User and Bot messages.
+ * ChatAdapter connects our list of messages to the RecyclerView.
+ * It knows how to create and fill two different types of chat bubbles -
+ * one for the user's messages and one for the bot's messages.
  */
 public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    // View Type constants to distinguish between sender types
+    // Constants to tell apart user messages from bot messages
     private static final int VIEW_TYPE_USER = 1;
     private static final int VIEW_TYPE_BOT = 2;
 
+    // The list that holds all the chat messages
     private List<Message> messageList;
 
+    // Keeps track of the last animated item so we don't re-animate old messages
     private int lastPosition = -1;
 
+    // Constructor - initializes an empty list to hold messages
     public ChatAdapter() {
         super();
         this.messageList = new ArrayList<>();
     }
 
+    /**
+     * Tells the RecyclerView which layout to use for each message.
+     * If the message was sent by the user, return USER type.
+     * If it was sent by the bot, return BOT type.
+     */
     @Override
     public int getItemViewType(int position) {
-        // Determine the type of view based on the sender of the message
         Message message = messageList.get(position);
         if (message.IsUser) {
             return VIEW_TYPE_USER;
@@ -42,10 +49,14 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
+    /**
+     * Creates a new ViewHolder when the RecyclerView needs one.
+     * Depending on the view type, it inflates either the user bubble layout
+     * or the bot bubble layout.
+     */
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Inflate the appropriate layout based on the view type (User or Bot)
         if (viewType == VIEW_TYPE_USER) {
             View view = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.item_chat_user, parent, false);
@@ -57,21 +68,30 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
+    /**
+     * Fills in the data for each message when it appears on screen.
+     * It checks the type and calls the right ViewHolder's bind method,
+     * then applies the slide-in animation.
+     */
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         Message message = messageList.get(position);
 
+        // Cast to the correct ViewHolder type and bind the message data
         if (holder.getItemViewType() == VIEW_TYPE_USER) {
             ((UserMessageViewHolder) holder).bind(message);
         } else {
             ((BotMessageViewHolder) holder).bind(message);
         }
 
+        // Apply the fall-down animation to new messages
         setAnimation(holder.itemView, position);
     }
 
     /**
-     * Applies a slide-in animation to the view if it hasn't been shown yet.
+     * Applies a slide-in animation to new messages as they appear.
+     * Only animates messages that haven't been shown yet to avoid
+     * re-animating when scrolling back up.
      */
     private void setAnimation(View viewToAnimate, int position) {
         if (position > lastPosition) {
@@ -82,11 +102,16 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
+    // Returns the total number of messages in the chat
     @Override
     public int getItemCount() {
         return messageList.size();
     }
 
+    /**
+     * Adds a new message to the chat list and notifies the RecyclerView
+     * that a new item was inserted, so it can update the display smoothly.
+     */
     public void AddMessage(Message message) {
         messageList.add(message);
         notifyItemInserted(messageList.size() - 1);

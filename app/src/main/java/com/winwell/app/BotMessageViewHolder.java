@@ -11,24 +11,33 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * BotMessageViewHolder holds the references to the UI elements for a bot
- * message.
- * This pattern optimizes list performance by avoiding repeated findViewById
- * calls.
+ * ViewHolder for bot messages in the chat.
+ * Same idea as UserMessageViewHolder but for the bot's replies.
+ * Having a separate ViewHolder lets us use a different layout and style
+ * for bot messages (left-aligned, different color bubble).
  */
 public class BotMessageViewHolder extends RecyclerView.ViewHolder {
+
+    // The TextView that displays the bot's message text
     public TextView MessageBody;
+
+    // The TextView that displays the timestamp
     public TextView MessageTime;
 
+    // Constructor - finds and stores references to the views in the layout
     public BotMessageViewHolder(@NonNull View itemView) {
         super(itemView);
         MessageBody = itemView.findViewById(R.id.text_message_body);
         MessageTime = itemView.findViewById(R.id.text_message_time);
     }
 
+    /**
+     * Fills in the bot message data into the views.
+     * Sets the message text and formats the timestamp to show
+     * a readable time like "3:45 PM".
+     */
     public void bind(Message message) {
         MessageBody.setText(message.Content);
-        // Format and display the timestamp for a realistic chat feel
         SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.getDefault());
         MessageTime.setText(sdf.format(new Date(message.Timestamp)));
     }
