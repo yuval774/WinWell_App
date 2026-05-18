@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_chat.xml — Main chat screen layout for WinWell HW3
+    ─────────────────────────────────────────────────────────────
+    What's in this file:
+      1. Header   — app logo, title, and a red "Test Crash" button for Crashlytics
+      2. FrameLayout (middle) — layers the chat RecyclerView AND a Lottie loading
+         animation on top of each other. The animation is shown while the app
+         fetches bot responses from Firebase Firestore; it hides once the data arrives.
+      3. Footer   — EditText input + Send ImageButton
+
+    Third-party library used: Airbnb Lottie (com.airbnb.android:lottie:6.3.0)
+    → The <com.airbnb.lottie.LottieAnimationView> tag requires this library in build.gradle.
+    → The animation JSON file must be placed in res/raw/loading_animation.json
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
@@ -8,15 +22,19 @@
     android:animateLayoutChanges="true"
     android:background="@drawable/bg_gradient">
 
-    <!-- Header -->
+    <!-- ══════════════════════════════════════════════
+         HEADER — logo + app name + Test Crash button
+         ══════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/header_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:background="@android:color/transparent">
-        
+
+        <!-- App logo with shared-element transition from LoginActivity -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/header_logo_container"
             android:layout_width="48dp"
@@ -36,28 +54,73 @@
                 android:padding="4dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/logo" />
+
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- App name — layout_width="0dp" + layout_weight="1" pushes the crash button to the right -->
         <TextView
             android:id="@+id/header_title"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="@string/app_name"
             android:textColor="@color/navy_blue"
             android:textSize="20sp"
             android:textStyle="bold" />
+
+        <!-- Test Crash button — clicking this throws a RuntimeException on purpose.
+             Firebase Crashlytics will capture it so we can verify the integration works.
+             Uri: this button proves that Crashlytics is receiving real crash reports. -->
+        <Button
+            android:id="@+id/btn_test_crash"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Test Crash"
+            android:textSize="10sp"
+            android:padding="6dp"
+            android:backgroundTint="#FF4444"
+            android:textColor="@color/white" />
+
     </LinearLayout>
 
-    <!-- Chat Area -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_chat"
+    <!-- ══════════════════════════════════════════════════════════════════
+         MIDDLE AREA — FrameLayout so chat + loading overlay sit on top
+         of each other. Two children:
+           • RecyclerView  (always present, shows chat messages)
+           • LottieAnimationView  (visible at launch, hidden after Firestore loads)
+         ══════════════════════════════════════════════════════════════════ -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="16dp"
-        android:clipToPadding="false"/>
+        android:layout_weight="1">
 
-    <!-- Footer Area -->
+        <!-- Chat messages list -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_chat"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp"
+            android:clipToPadding="false" />
+
+        <!-- Lottie loading animation (Airbnb 3rd-party library — bonus points).
+             Shown while the app fetches bot responses from Firebase Firestore.
+             Once fetchBotResponsesFromFirestore() succeeds, ChatActivity hides this view.
+             The JSON animation file lives at:  app/src/main/res/raw/loading_animation.json -->
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lottie_loading"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:layout_gravity="center"
+            app:lottie_rawRes="@raw/loading_animation"
+            app:lottie_autoPlay="true"
+            app:lottie_loop="true"
+            android:visibility="visible" />
+
+    </FrameLayout>
+
+    <!-- ══════════════════════════════════════════════
+         FOOTER — message input + send button
+         ══════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/footer_container"
         android:layout_width="match_parent"
@@ -77,7 +140,7 @@
             android:padding="12dp"
             android:background="@drawable/bg_input"
             android:maxLines="4"
-            android:layout_marginEnd="12dp"/>
+            android:layout_marginEnd="12dp" />
 
         <ImageButton
             android:id="@+id/btn_send"
@@ -89,7 +152,7 @@
             android:padding="12dp"
             android:scaleType="fitCenter"
             app:tint="@color/white"
-            android:layout_gravity="center_vertical"/>
+            android:layout_gravity="center_vertical" />
 
     </LinearLayout>
 

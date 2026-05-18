@@ -1,5 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
+
+    // Apply Google Services plugin to process the google-services.json file
+    id 'com.google.gms.google-services'
+
+    // Apply Crashlytics plugin to enable crash reporting in the app
+    id 'com.google.firebase.crashlytics'
 }
 
 android {
@@ -40,4 +46,20 @@ dependencies {
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+
+    // Firebase BoM (Bill of Materials) - manages all Firebase library versions automatically
+    implementation platform('com.google.firebase:firebase-bom:34.13.0')
+
+    // Firebase Analytics - tracks user behavior and app usage events
+    implementation 'com.google.firebase:firebase-analytics'
+
+    // Firebase Crashlytics - automatically reports crashes with full details
+    implementation 'com.google.firebase:firebase-crashlytics'
+
+    // Firebase Firestore - cloud database to store and fetch bot responses dynamically
+    implementation 'com.google.firebase:firebase-firestore'
+
+    // Lottie - third party animation library used to show a loading animation
+    // while the app fetches bot responses from Firestore
+    implementation 'com.airbnb.android:lottie:6.3.0'
 }

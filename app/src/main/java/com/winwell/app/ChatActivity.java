@@ -3,6 +3,7 @@ package com.winwell.app;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 
@@ -14,148 +15,227 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+// Lottie — 3rd party animation library by Airbnb (bonus points)
+// Used to show a smooth loading animation while bot responses are fetched from Firestore
+import com.airbnb.lottie.LottieAnimationView;
+
+// Firebase Analytics — tracks user actions (login event, message_sent event)
+import com.google.firebase.analytics.FirebaseAnalytics;
+
+// Firebase Crashlytics — captures crashes and logs key moments in the app flow
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
+
+// Firebase Firestore — the cloud database where our bot responses are stored
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
- * ChatActivity is the main chat screen of the app.
- * It displays a conversation between the user and the WinWell bot using a RecyclerView.
- * The user types a message, the bot responds with a random wellness-related reply after a short delay.
+ * ChatActivity — the main chat screen of WinWell.
+ *
+ * HW3 Firebase features implemented here:
+ *   1. Firebase Analytics    → logs a "message_sent" event every time the user sends a message
+ *   2. Firebase Crashlytics  → logs key moments as breadcrumbs; "Test Crash" button triggers a crash on purpose
+ *   3. Firebase Firestore    → bot responses are loaded from the cloud "bot_responses" collection
+ *                              instead of being hardcoded in the app
+ *
+ * Bonus (3rd-party library):
+ *   • Airbnb Lottie → shows a smooth JSON-based loading animation while Firestore is fetching data
  */
 public class ChatActivity extends AppCompatActivity {
 
-    // UI elements - the chat list, input field, and send button
+    // ─── UI elements ───────────────────────────────────────────────────────────
     private RecyclerView recyclerView;
     private ChatAdapter chatAdapter;
     private EditText editMessage;
     private ImageButton btnSend;
+    private Button btnTestCrash;
 
-    // A collection of pre-written bot responses about wellness, scheduling, and self-care.
-    // The bot picks one randomly each time the user sends a message.
-    private final String[] botAnswers = {
-            "I've reviewed your calendar for today and noticed a 4-hour meeting block this afternoon; you will need a recovery moment to stay sharp.",
-            "Your schedule is packed between 1 PM and 5 PM. Shall I inject a 10-minute buffer to protect your energy?",
-            "You have back-to-back calls with no breaks. I suggest a 5-minute deep breathing session at 2:15 PM.",
-            "I detected a high-intensity work block. Would you like to switch to 'Auto-pilot' so I can automatically defend your recovery time?",
-            "To prevent burnout later today, I recommend moving your 4 PM task to tomorrow morning when your energy is typically higher.",
-            "You've been in 'focus mode' for three hours. Let's take a quick walk to reset your clarity.",
-            "I see a gap in your schedule at 11 AM. I'm marking this as 'Protected Time' to ensure you don't get booked.",
-            "Your Tuesday looks significantly heavier than usual. Let's plan two micro-breaks now so you don't crash later.",
-            "I noticed you haven't had a bio-break in 4 hours. Prioritizing your physical needs is key to sustaining this pace.",
-            "That was a long sprint. I've queued up a 5-minute hydration and stretch reminder.",
-            "I noticed you declined the last two break suggestions. On a scale of 1-10, how is your energy level right now?",
-            "You seem to be pushing hard today. Are you running on adrenaline or genuine energy?",
-            "Let's check in—not on what you have to do, but on how you feel.",
-            "It's been a chaotic morning. Do you need a moment of calm, or are you ready to power through?",
-            "You mentioned feeling frayed yesterday. How is your headspace starting out today?",
-            "Your current pace matches your 'Burnout Zone' patterns. Let's dial it back slightly to maintain long-term stamina.",
-            "I'm sensing low focus based on your task switching. Is it time for a recharge or just a change of scenery?",
-            "Do you feel like you are controlling your day, or is the day controlling you right now?",
-            "Let's prioritize: What is the one thing that must happen today for you to feel successful and calm?",
-            "Recovery isn't laziness; it's fuel. How can we refuel you in the next 15 minutes?",
-            "Suggested Activity: 10-minute Deep Breathing Session.",
-            "Suggested Activity: A quick 5-minute walk outside to get sunlight and reset your circadian rhythm.",
-            "Suggested Activity: 'Box Breathing' technique—inhale for 4, hold for 4, exhale for 4.",
-            "Suggested Activity: Step away from the screen and focus on an object 20 feet away for 20 seconds.",
-            "Suggested Activity: A quick hydration break. Drink a full glass of water before your next Zoom.",
-            "Suggested Activity: 15-minute 'No-Tech' zone. Put the phone down and just sit.",
-            "Suggested Activity: Write down three things that went well today to shift your mindset.",
-            "Suggested Activity: A 10-minute power nap to restore cognitive alertness.",
-            "Suggested Activity: Stretching your neck and shoulders to release the tension from sitting.",
-            "Suggested Activity: Call a friend for 5 minutes—social connection is a powerful recovery tool.",
-            "I've switched to Co-pilot mode; I will wait for your approval before changing any calendar events.",
-            "Understood. I will decline that break, but please promise me you'll leave your desk by 5 PM.",
-            "Switching to Auto-pilot. I will now automatically decline conflicting meetings to protect your focus time.",
-            "I see you declined the breathing exercise. Would you prefer a quick physical stretch instead?",
-            "You've accepted 3 breaks in a row! Great job prioritizing your sustainability.",
-            "I've locked your calendar for the next hour as requested. No notifications will get through.",
-            "Would you like me to take the lead on rescheduling your low-priority calls today?",
-            "I've noted that you prefer 'Deep Breathing' over 'Meditation.' I'll update my suggestions.",
-            "You are in control. Just hit 'Decline' if this suggestion doesn't fit your flow right now.",
-            "I'm here to help you win on your terms. Adjust the slider if you need more or less intervention.",
-            "Welcome to WinWell. I'm here to help you win at life, on your terms.",
-            "To get started, please connect your calendar so I can identify your pressure points.",
-            "I've successfully synced with your Google Calendar. Scanning for burnout risks now...",
-            "Hi there! I'm your performance and well-being companion.",
-            "My goal is to ensure you never have to choose between your ambitions and your health.",
-            "Your schedule is now protected. I'll notify you when I find gaps for recovery.",
-            "Let's set some boundaries. What time do you absolutely need to shut down today?",
-            "I am not just a calendar tool; I am designed to understand your capacity.",
-            "Everything looks set! Entering Chat mode to begin your journey.",
-            "Remember, I learn from you. The more we chat, the better I can protect your energy."
-    };
+    // Lottie view — the animated loading spinner shown while Firestore fetches data
+    private LottieAnimationView lottieLoading;
+
+    // ─── Firebase ──────────────────────────────────────────────────────────────
+    // Analytics: tracks what users do inside the app (events)
+    private FirebaseAnalytics mFirebaseAnalytics;
+
+    // Firestore: our cloud NoSQL database — stores bot responses dynamically
+    private FirebaseFirestore db;
+
+    // ─── Bot responses ─────────────────────────────────────────────────────────
+    // This list starts EMPTY and is filled from Firestore when the app opens.
+    // Uri: this is how the app fetches dynamic data from the cloud instead of using hardcoded strings.
+    private List<String> botAnswers = new ArrayList<>();
+
+    // ───────────────────────────────────────────────────────────────────────────
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Enable edge-to-edge so the app uses the full screen
+        // Enable edge-to-edge so content fills the full screen behind system bars
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_chat);
 
-        // Adjust padding so our content doesn't hide behind the system bars
+        // Push content below the status bar / above the navigation bar
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // Connect the XML views to our Java variables
-        recyclerView = findViewById(R.id.recycler_chat);
-        editMessage = findViewById(R.id.edit_message);
-        btnSend = findViewById(R.id.btn_send);
+        // ── Connect XML views to Java variables ────────────────────────────────
+        recyclerView  = findViewById(R.id.recycler_chat);
+        editMessage   = findViewById(R.id.edit_message);
+        btnSend       = findViewById(R.id.btn_send);
+        btnTestCrash  = findViewById(R.id.btn_test_crash);
+        lottieLoading = findViewById(R.id.lottie_loading);
 
-        // Create the adapter that will manage and display our chat messages
+        // ── Initialize Firebase services ───────────────────────────────────────
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+        db = FirebaseFirestore.getInstance();
+
+        // Leave a Crashlytics breadcrumb so we can trace that this screen was reached
+        FirebaseCrashlytics.getInstance().log("ChatActivity opened");
+
+        // ── Set up the RecyclerView ─────────────────────────────────────────────
         chatAdapter = new ChatAdapter();
-
-        // Set up the RecyclerView with a LinearLayoutManager so messages appear in a vertical list
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(chatAdapter);
 
-        // Show a welcome message from the bot when the chat screen opens
+        // Show the welcome message immediately so the screen doesn't look blank
         AddBotMessage("Welcome to WinWell! How can I help you today?");
 
-        // Set up the send button - when clicked, it takes the user's text and sends it
-        btnSend.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String content = editMessage.getText().toString().trim();
-                // Only send the message if the user actually typed something
-                if (!content.isEmpty()) {
-                    SendMessage(content);
-                }
+        // ── Start the Lottie loading animation ──────────────────────────────────
+        // The animation is already visible (set in XML), but we play it explicitly here.
+        // The send button is disabled until Firestore finishes loading.
+        // Uri: this is the Lottie 3rd-party library in action — it plays a JSON animation.
+        lottieLoading.setVisibility(View.VISIBLE);
+        lottieLoading.playAnimation();
+        btnSend.setEnabled(false); // user can't send until bot responses are ready
+
+        // ── Load bot responses from Firebase Firestore ─────────────────────────
+        fetchBotResponsesFromFirestore();
+
+        // ── Send button ─────────────────────────────────────────────────────────
+        btnSend.setOnClickListener(v -> {
+            String content = editMessage.getText().toString().trim();
+            // Only send if the user actually typed something
+            if (!content.isEmpty()) {
+                SendMessage(content);
             }
+        });
+
+        // ── Test Crash button ───────────────────────────────────────────────────
+        // Pressing this button intentionally crashes the app.
+        // Firebase Crashlytics will catch it and report it to the Firebase console.
+        // Uri: this button is here to prove Crashlytics is active and capturing real crashes.
+        btnTestCrash.setOnClickListener(v -> {
+            FirebaseCrashlytics.getInstance().log("Test crash triggered by user — Crashlytics is working");
+            throw new RuntimeException("Test Crash — Firebase Crashlytics confirmed working!");
         });
     }
 
     /**
-     * Handles sending a user message and triggering a bot response.
-     * First adds the user's message to the chat, then after a 1-second delay
-     * the bot responds with a random answer to simulate a real conversation.
+     * Fetches all bot response documents from the Firestore "bot_responses" collection.
+     *
+     * Uri: this is the Firebase Firestore integration.
+     *   - The app queries the cloud database at startup.
+     *   - Each document has a "text" field containing one bot response.
+     *   - When data arrives, the Lottie animation is hidden and the chat becomes active.
+     *   - If Firestore fails (no internet, etc.), the error is logged to Crashlytics
+     *     and the app falls back gracefully.
      */
-    private void SendMessage(String content) {
-        // Add the user's message to the chat and scroll down to show it
-        chatAdapter.AddMessage(new Message(content, true));
-        recyclerView.scrollToPosition(chatAdapter.getItemCount() - 1);
+    private void fetchBotResponsesFromFirestore() {
+        db.collection("bot_responses")   // the collection we created in the Firebase console
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
 
-        // Clear the input field so the user can type a new message
-        editMessage.setText("");
+                    // Loop through every document and collect its "text" field
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        String text = doc.getString("text");
+                        if (text != null && !text.isEmpty()) {
+                            botAnswers.add(text);
+                        }
+                    }
 
-        // Use a Handler to delay the bot's response by 1 second,
-        // this makes it feel like the bot is actually "thinking"
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                // Pick a random response from the bot's answer pool
-                String randomAnswer = botAnswers[new Random().nextInt(botAnswers.length)];
-                AddBotMessage(randomAnswer);
-            }
-        }, 1000);
+                    // Tell Crashlytics how many responses we loaded — useful for debugging
+                    FirebaseCrashlytics.getInstance().log(
+                            "Firestore fetch complete — loaded " + botAnswers.size() + " bot responses"
+                    );
+
+                    // ── Hide the Lottie animation now that data is ready ──────────
+                    // Uri: the loading animation disappears exactly when the cloud data arrives.
+                    lottieLoading.cancelAnimation();
+                    lottieLoading.setVisibility(View.GONE);
+
+                    // Unlock the send button so the user can start chatting
+                    btnSend.setEnabled(true);
+                })
+
+                .addOnFailureListener(e -> {
+                    // Log the exception to Firebase Crashlytics for debugging
+                    FirebaseCrashlytics.getInstance().recordException(e);
+
+                    // Still hide the animation so the app doesn't look frozen
+                    lottieLoading.cancelAnimation();
+                    lottieLoading.setVisibility(View.GONE);
+                    btnSend.setEnabled(true);
+
+                    // Let the user know something went wrong
+                    AddBotMessage("⚠️ Couldn't connect to the server. Please check your internet and restart the app.");
+                });
     }
 
     /**
-     * Adds a bot message to the chat and scrolls the RecyclerView to the bottom
-     * so the user can see the new message right away.
+     * Handles a user message:
+     *   1. Adds the user's bubble to the chat
+     *   2. Logs a Firebase Analytics "message_sent" event
+     *   3. After a 1-second delay (to simulate the bot "thinking"), picks a random
+     *      bot response from the Firestore data and adds it to the chat
+     */
+    private void SendMessage(String content) {
+
+        // Add the user's message bubble to the chat list and scroll to it
+        chatAdapter.AddMessage(new Message(content, true));
+        recyclerView.scrollToPosition(chatAdapter.getItemCount() - 1);
+
+        // Clear the input box so the user can type their next message
+        editMessage.setText("");
+
+        // ── Firebase Analytics: log the "message_sent" event ──────────────────
+        // Uri: this proves Analytics is recording user actions inside the app.
+        Bundle analyticsBundle = new Bundle();
+        analyticsBundle.putInt("message_length", content.length()); // extra data attached to the event
+        mFirebaseAnalytics.logEvent("message_sent", analyticsBundle);
+
+        // Leave a Crashlytics breadcrumb so if a crash happens during/after sending,
+        // we can see in the report that the user had just sent a message
+        FirebaseCrashlytics.getInstance().log("User sent a message, length: " + content.length());
+
+        // ── Simulate bot typing delay then reply ──────────────────────────────
+        new Handler().postDelayed(() -> {
+
+            // Pick a random bot response from the Firestore list
+            // If for some reason the list is empty, fall back to a safe default message
+            String randomAnswer;
+            if (!botAnswers.isEmpty()) {
+                randomAnswer = botAnswers.get(new Random().nextInt(botAnswers.size()));
+            } else {
+                randomAnswer = "I'm here for you! Let me know how you're feeling today.";
+            }
+
+            AddBotMessage(randomAnswer);
+
+        }, 1000); // 1 second delay — makes the bot feel more natural and human
+    }
+
+    /**
+     * Adds a bot message bubble to the chat and scrolls the list down
+     * so the new message is always visible.
      */
     private void AddBotMessage(String content) {
         chatAdapter.AddMessage(new Message(content, false));

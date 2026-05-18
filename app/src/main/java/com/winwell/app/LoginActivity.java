@@ -13,60 +13,82 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+// Firebase Analytics — tracks when a user successfully logs in
+import com.google.firebase.analytics.FirebaseAnalytics;
+
 /**
- * LoginActivity is the first screen the user sees when opening the app.
- * It shows a simple login form with email and password fields.
- * If the credentials are correct, the user moves to the ChatActivity.
+ * LoginActivity — the first screen the user sees when they open WinWell.
+ *
+ * HW3 Firebase feature implemented here:
+ *   • Firebase Analytics → logs a LOGIN event every time a user signs in successfully.
+ *     Uri: this proves that Analytics is tracking real user behavior (not just app opens).
+ *
+ * The login credentials are hardcoded for demo purposes:
+ *   Email:    uritheteacher@gmail.com
+ *   Password: androidstudio
  */
 public class LoginActivity extends AppCompatActivity {
+
+    // Firebase Analytics instance — used to log the login event
+    private FirebaseAnalytics mFirebaseAnalytics;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Enable edge-to-edge display so the app content stretches under the system bars
+        // Enable edge-to-edge display (content goes behind status/nav bars)
         EdgeToEdge.enable(this);
-
-        // Set the layout for this screen
         setContentView(R.layout.activity_login);
 
-        // Handle the system bars (status bar, navigation bar) so content doesn't overlap them
+        // Adjust padding so content stays clear of the system bars
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // Connect the XML views to Java variables so we can interact with them
+        // ── Initialize Firebase Analytics ──────────────────────────────────────
+        // Uri: Analytics is initialized here so we can log the login event below.
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+
+        // ── Connect XML views to Java variables ────────────────────────────────
         final EditText usernameEditText = findViewById(R.id.username);
         final EditText passwordEditText = findViewById(R.id.password);
-        final Button loginButton = findViewById(R.id.login);
+        final Button loginButton        = findViewById(R.id.login);
 
-        // When the user clicks the Sign In button, check the credentials
+        // ── Sign In button click handler ───────────────────────────────────────
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Get the text the user typed in the email and password fields
                 String username = usernameEditText.getText().toString();
                 String password = passwordEditText.getText().toString();
 
-                // Check if the credentials match the hardcoded values (for demo purposes)
+                // Check credentials (hardcoded for the HW3 demo)
                 if ("uritheteacher@gmail.com".equals(username) && "androidstudio".equals(password)) {
-                    // Create an Intent to navigate from LoginActivity to ChatActivity
+
+                    // ── Firebase Analytics: log the LOGIN event ───────────────
+                    // This tells Firebase "a user just logged in via email".
+                    // Uri: you can see this event appear in the Firebase Analytics dashboard.
+                    Bundle loginBundle = new Bundle();
+                    loginBundle.putString(FirebaseAnalytics.Param.METHOD, "email");
+                    mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.LOGIN, loginBundle);
+
+                    // Create an Intent to navigate to the chat screen
                     Intent intent = new Intent(LoginActivity.this, ChatActivity.class);
 
-                    // Set up a shared element transition - the logo will animate smoothly
-                    // from the login screen to the chat screen
-                    androidx.core.app.ActivityOptionsCompat options = androidx.core.app.ActivityOptionsCompat
-                            .makeSceneTransitionAnimation(
+                    // Shared element transition: the logo animates smoothly from
+                    // this screen into the header of ChatActivity
+                    androidx.core.app.ActivityOptionsCompat options =
+                            androidx.core.app.ActivityOptionsCompat.makeSceneTransitionAnimation(
                                     LoginActivity.this,
                                     findViewById(R.id.logo_container),
-                                    "logoTransition"); // This name must match android:transitionName in the XML
+                                    "logoTransition"); // must match android:transitionName in both XMLs
 
-                    // Start the ChatActivity with the transition animation
+                    // Launch ChatActivity with the smooth transition
                     startActivity(intent, options.toBundle());
+
                 } else {
-                    // If credentials are wrong, show an error message to the user
+                    // Wrong credentials — show a toast error message
                     Toast.makeText(getApplicationContext(), R.string.login_failed, Toast.LENGTH_SHORT).show();
                 }
             }
